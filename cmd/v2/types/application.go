@@ -12,6 +12,7 @@ import (
 type Application struct {
 	cfg                 configurable.IConfigurable
 	Config              *Config
+	Responder           *Responder
 	HOME                string
 	GODIR               string
 	GOBIN               string
@@ -73,15 +74,6 @@ func (app *Application) Load(configFilePath string) error {
 	app.GOROOT = fmt.Sprintf("%v/root", app.GODIR)
 
 	return app.CLI().Parse(configFilePath)
-}
-
-func (app *Application) SetupEnvironment() {
-	/*
-		TODO: Need to create a few resources:
-
-		app.GODIR
-		app.
-	*/
 }
 
 func (app *Application) Backup() (string, error) {

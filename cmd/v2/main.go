@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/andreimerlescu/configurable"
 	"github.com/andreimerlescu/install-go/cmd/v2/types"
@@ -67,75 +68,13 @@ func main() {
 		log.Fatal(loadErr)
 	}
 
-	// Respond to help first
-	if *app.Config.Help {
-		fmt.Println(app.CLI().Usage())
-		return
-	}
+	wg := &sync.WaitGroup{}
+	responder := types.NewResponder(ctx, app, wg)
+	go responder.ShowHelp()
+	go responder.AddressUsability()
+	go responder.SetLogging()
+	go responder.TakeBackup()
+	go responder.PrepareWorkspace()
+	wg.Wait()
 
-	// If user sets --version to latest, its a user-error, catch it and correct it
-	if *app.Config.Version == "latest" {
-		app.Config.Version = nil
-		*app.Config.Latest = true
-		*app.Config.LatestRC = false
-	}
-
-	if *app.Config.Version == "latest-rc" {
-		app.Config.Version = nil
-		*app.Config.Latest = false
-		*app.Config.LatestRC = true
-	}
-
-	// Allow --version to override --latest and --rc
-	if len(*app.Config.Version) > 0 && (*app.Config.Latest || *app.Config.LatestRC) {
-		*app.Config.Latest = false
-		*app.Config.LatestRC = false
-	}
-
-	// Set the --log now
-	logFilePath := filepath.Join(".", "tmp.install-go.log")
-	if len(*app.Config.LogFile) > 0 {
-		if _, cfgLogFileErr := os.Stat(*app.Config.LogFile); errors.Is(cfgLogFileErr, fs.ErrNotExist) {
-			logFilePath = *app.Config.LogFile
-		}
-	}
-	logFile, logFileErr := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_TRUNC|os.O_WRONLY, 0600)
-	if logFileErr == nil {
-		log.SetOutput(logFile)
-	}
-
-	// Handle --backup requests next
-	if *app.Config.Backup {
-		backupDir := filepath.Join(app.GODIR, "backups")
-		if len(*app.Config.Output) > 0 {
-			if outputInfo, outputErr := os.Stat(*app.Config.Output); outputErr == nil {
-				// We can use --output
-				if outputInfo.IsDir() {
-					backupDir = *app.Config.Output
-				} else {
-					backupDir = filepath.Base(*app.Config.Output)
-				}
-			} else {
-				// we cannot use --output
-				if errors.Is(outputErr, fs.ErrNotExist) {
-					// try creating --output
-					mkdirErr := os.MkdirAll(backupDir, 0700)
-					if mkdirErr != nil {
-						// nothing... probably bad permissions?
-						log.Fatal("Failed to write to " + backupDir)
-					}
-				}
-			}
-		}
-		app.BackupDir = backupDir
-		backupFilePath, backupErr := app.Backup()
-		if backupErr != nil {
-			log.Fatal(backupErr)
-		}
-		log.Printf("SUCCESS! Created %v", backupFilePath)
-	}
-
-	// Then (yes, you can stack commands but only 1 value per run)
-	// Setup environment basics
-	app.SetupEnvironment()
 }
