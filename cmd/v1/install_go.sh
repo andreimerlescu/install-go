@@ -137,11 +137,3 @@ touch "${GODIR}/versions/${VERSION}/installer.lock"
 
 rm -rf "${GODIR}/installer.lock"
 
-while true; do
-    read -r -t 17 -p "Do you want to reload your shell (exec \"$SHELL\")? [y/n] " yn
-    case $yn in
-        [Yy]* ) source_shell_config; break;;
-        [Nn]* ) echo ; exit;;
-        * ) echo "Please answer yes or no.";;
-    esac
-done
