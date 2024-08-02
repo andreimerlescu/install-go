@@ -52,14 +52,14 @@ execution shim. The script also configures necessary environment variables for G
 development.
 
 Arguments:
-  version           Specify the version of GoLand to download, e.g., '2023.2.5'.
+  version           Specify the version of GoLand to download, e.g., '2024.1.4'.
                     If not provided, defaults to the latest available version.
 
 Options:
   -h, --help, help  Display this help and exit.
 
 Example:
-  ${0##*/} 2023.2.5    # Install GoLand version 2023.2.5
+  ${0##*/} 2024.1.4    # Install GoLand version 2024.1.4
   ${0##*/}             # Install the latest version of GoLand
 
 EOF
@@ -67,7 +67,7 @@ EOF
 fi
 
 # Version
-default_version="2023.2.5"
+default_version="2024.1.4"
 version="${1:-"${default_version}"}"
 version_regex='^[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$'
 if [[ $version =~ $version_regex ]]; then
@@ -79,7 +79,7 @@ else
     read -r -p "Do you want to install GoLand ${default_version} despite specifying ${version} [that is invalid?] (y|n): " bad_version_check
     case "${bad_version_check}" in
       [Yy]*)
-        version="2023.2.5"
+        version="2024.1.4"
         break
         ;;
       *)
