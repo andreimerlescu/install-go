@@ -15,4 +15,5 @@ type Config struct {
 	Debug     *bool   `json:"debug" yaml:"Debug"`
 	LogFile   *string `json:"log_file" yaml:"LogFile"`
 	Help      *bool   `json:"help" yaml:"Help"`
+	Downloads *string `json:"downloads" yaml:"Downloads"`
 }

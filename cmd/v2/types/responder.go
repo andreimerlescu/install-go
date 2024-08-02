@@ -1,11 +1,15 @@
 package types
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -129,7 +133,7 @@ func (r *Responder) PrepareWorkspace() {
 	defer r.wg.Done()
 
 	if _, dirErr := os.Stat(r.app.GODIR); dirErr != nil {
-		if errors.Is(dirErr, fs.ErrNotExist){
+		if errors.Is(dirErr, fs.ErrNotExist) {
 			mkdirErr := os.MkdirAll(r.app.GODIR, 0755)
 			if mkdirErr == nil {
 				return
@@ -138,4 +142,39 @@ func (r *Responder) PrepareWorkspace() {
 			}
 		}
 	}
+}
+
+func (r *Responder) Download(url string) ([]byte, error) {
+	r.wg.Add(1)
+	defer r.wg.Done()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch data: %s", resp.Status)
+	}
+	body := []byte{}
+	io.Copy(bytes.NewBuffer(body), resp.Body)
+	return body, nil
+}
+
+func (r *Responder) FetchAllVersions() []GoVersion {
+	r.wg.Add(1)
+	defer r.wg.Done()
+
+	payload, downloadErr := r.Download("https://go.dev/dl/?mode=json")
+	if downloadErr != nil {
+		return []GoVersion{}
+	}
+
+	var versions []GoVersion
+	if err := json.NewDecoder(bytes.NewBuffer(payload)).Decode(&versions); err != nil {
+		return nil
+	}
+
+	return versions
 }

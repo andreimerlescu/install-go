@@ -2,9 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -45,31 +42,17 @@ func main() {
 		GOARCH:    app.CLI().NewString("arch", "amd64", "Override GOARCH environment variable (one time instant temporary)"),
 		Debug:     app.CLI().NewBool("debug", false, "Enable debug logging to --log"),
 		LogFile:   app.CLI().NewString("log", "STDOUT", "STDOUT or Path to writable log file"),
+		Downloads: app.CLI().NewString("downloads", filepath.Join(app.GODIR, "downloads"), "Path to downloads"),
 	}
 
-	configFile := ""
-	tempConfig := filepath.Join(".", "config.yaml")
-	if _, configFileErr := os.Stat(tempConfig); configFileErr != nil {
-		if errors.Is(configFileErr, fs.ErrNotExist) {
-			configFile = ""
-		} else if errors.Is(configFileErr, fs.ErrPermission) {
-			log.Printf("WARNING: Permission denied attempting to read %v with error: %v", tempConfig, configFileErr)
-			configFile = ""
-		} else if errors.Is(configFileErr, fs.ErrInvalid) {
-			log.Printf("DANGER: %v", configFileErr)
-			configFile = ""
-		}
-	} else {
-		configFile = fmt.Sprintf("%v", tempConfig)
-	}
-
-	loadErr := app.Load(configFile)
+	loadErr := app.Load()
 	if loadErr != nil {
 		log.Fatal(loadErr)
 	}
 
 	wg := &sync.WaitGroup{}
 	responder := types.NewResponder(ctx, app, wg)
+	app.Responder = responder
 	go responder.ShowHelp()
 	go responder.AddressUsability()
 	go responder.SetLogging()
